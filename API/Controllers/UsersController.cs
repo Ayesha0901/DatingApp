@@ -1,36 +1,49 @@
 ﻿using API.Data;
 using API.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SQLitePCL;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")] // /api/users
-public class UsersController : ControllerBase
+namespace API.Controllers
 {
-    private readonly DataContext _context;
-
-    public UsersController(DataContext context)
+    [Authorize]
+    public class UsersController : BaseApiController
     {
-        _context = context;
-    }
+        private readonly DataContext _context;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<AppUser>>> GetUsers()
-    {
-        var users = await _context.Users.ToListAsync();
-
-        return users;
-    }
-
-    [HttpGet("{id}")] // / api/users/2
-    public async Task<ActionResult<AppUser>> GetUser(int id)
-    {
+        public UsersController(DataContext context)
         {
-return await _context.Users.FindAsync(id);
-    }
-        
+            _context = context;
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<AppUser>>> GetUsers()
+        {
+            var users = await _context.Users.ToListAsync();
+            return users;
+        }
+
+        [HttpGet("{id}")]
+        [AllowAnonymous] // Allow unauthenticated access to this specific action
+        public async Task<ActionResult<AppUser>> GetUser(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            return user;
+        }
+
+        [HttpGet("authenticated")]
+        public ActionResult<string> GetAuthenticated()
+        {
+            // Only authenticated users can access this action
+            return "This is an authenticated endpoint.";
+        }
     }
 }
